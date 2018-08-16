@@ -63,8 +63,8 @@ int matrixIsEqual(int** M1, int** M2, problem_data d);
 int main(int argc, char const *argv[])
 {
 
-    //tabuSearch("./NSPLib/N100/1.nsp", "./NSPLib/Cases/1.gen", 100, 100);
-    tabuSearch("./NSPLib/test.nsp", "./NSPLib/test.gen", 50001, 50001);
+    //tabuSearch("./NSPLib/N25/1.nsp", "./NSPLib/Cases/1.gen", 100, 100);
+    tabuSearch("./NSPLib/test.nsp", "./NSPLib/test.gen", 10, 1000);
 	return 0;
 }
 
@@ -101,11 +101,15 @@ void tabuSearch(const char* file_data, const char* file_case, int tabuListSize, 
     cout << "Best of all elements##################################\n";
     cout << "Best of all elements score:" << best_element.e.EV <<"\n";
     printMatrix(data.PM_size[0],data.PM_size[1], best_element.M);
-    
+    for (int i = 0; i < tabuList.largo; ++i)
+    {
+        cout << tabuList.v[i].e.EV << " | ";
+    }
+    /*
     for (int i = 0; i < tabuList.largo; ++i)
     {
         printMatrix(data.PM_size[0],data.PM_size[1], tabuList.v[i].M);
-    }
+    }*/
 }
 
 
@@ -444,18 +448,7 @@ element_data getNeighbors(int** initial_M, problem_data d, problem_case c, cola 
     //cout << "getNeighbors\n";
     int temp = 0;
     element_data best_neighbor;
-    best_neighbor.M = copyMatrix(initial_M, d);
-
-    if (best_neighbor.M[0][0] == 0)
-    {
-        best_neighbor.M[0][0]=1;
-    }
-    else{
-        best_neighbor.M[0][0]=0;
-    }
     element_data test_neighbor;
-    best_neighbor.e = getMatrixSocre(best_neighbor.M, d, c);
-
     int firstElement = 1;
     for(int i =0; i<d.PM_size[0]; i++){
         for (int j = 0; j < d.PM_size[1]; ++j)
