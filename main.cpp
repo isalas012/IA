@@ -4,6 +4,7 @@
 #include <iostream>
 #include <iomanip>
 #include <fstream>
+#include <vector>
 using namespace std;
 
 /*-------------------------------Data Structures-------------------------------*/
@@ -23,34 +24,88 @@ struct problem_case {
     int** APS; //Assignments per shift
 };
 
+struct evaluation_data{
+    int EV; //Evaluation score
+    int* Si; //Score nurse i
+    int* RBi; // Soft estriction broke by nurse i
+    int* ASi; // Soft restriction broke in shift i
+};
+
+struct element_data{
+    int** M; //Evaluation score
+    evaluation_data e;
+};
+
+struct cola
+{
+    std::vector<element_data> v;
+    int largo = 0;
+    int max;
+};
+
+
+
 /*----------------------------Function Declaration----------------------------*/
 problem_data getData(const char* file);
 void printMatrix(int rows, int cols, int** M);
 problem_case getCase(const char* file);
 int** getStartInstance(problem_data d, problem_case c);
+evaluation_data getMatrixSocre(int** M, problem_data d, problem_case c);
+int** copyMatrix(int** initial_M, problem_data d);
+element_data getNeighbors(int** initial_M, problem_data d, problem_case c, cola col);
+cola insertar(cola c, element_data elemento);
+void tabuSearch(const char* file_data, const char* file_case, int tabuListSize, int iteraciones);
+int matrixIsEqual(int** M1, int** M2, problem_data d);
 
 
 /*------------------------------------Main------------------------------------*/
 
 int main(int argc, char const *argv[])
 {
-	problem_data data;
-    problem_case cs;
-    int ** start;
 
-	data = getData("./NSPLib/N25/1.nsp");
-    cs = getCase("./NSPLib/Cases/1.gen");
-	//cout << data.PS[0];
-	printMatrix(data.CM_size[0],data.CM_size[1], data.CM);
-	printMatrix(data.PM_size[0],data.PM_size[1], data.PM);
-    printMatrix(4,2, cs.CSWS);
-    printMatrix(4,2, cs.APS);
-    start = getStartInstance(data, cs);
-    printMatrix(data.PM_size[0],data.PM_size[1], start);
+    tabuSearch("./NSPLib/N100/1.nsp", "./NSPLib/Cases/1.gen", 100, 100);
 	return 0;
 }
 
 /*---------------------------------Functions---------------------------------*/
+
+void tabuSearch(const char* file_data, const char* file_case, int tabuListSize, int iteraciones){
+    cola tabuList;
+    tabuList.max = tabuListSize;
+    problem_data data;
+    problem_case cs;
+    element_data best_element;
+    element_data actual_element;
+    element_data best_neighbor;
+    data = getData(file_data);
+    cs = getCase(file_case);
+    best_element.M = getStartInstance(data, cs);
+    best_element.e = getMatrixSocre(best_element.M, data, cs);
+    tabuList = insertar(tabuList, best_element);
+    //printMatrix(data.PM_size[0],data.PM_size[1], data.PM);
+    //printMatrix(4,2, cs.CSWS);
+    //printMatrix(4,2, cs.APS);
+    actual_element = best_element;
+    for (int i = 0; i < iteraciones; ++i)
+    {
+        best_neighbor = getNeighbors(actual_element.M, data, cs, tabuList);
+        tabuList = insertar(tabuList, best_neighbor);
+        if (best_element.e.EV < best_neighbor.e.EV)
+        {
+            best_element = best_neighbor;
+        }
+        actual_element = best_neighbor;
+    }
+    cout << "Best of all elements##################################\n";
+    cout << "Best of all elements score:" << best_element.e.EV <<"\n";
+    printMatrix(data.PM_size[0],data.PM_size[1], best_element.M);
+    /*
+    for (int i = 0; i < tabuList.largo; ++i)
+    {
+        printMatrix(data.PM_size[0],data.PM_size[1], tabuList.v[i].M);
+    }*/
+}
+
 
 problem_data getData(const char* file){
 	ifstream inFile;
@@ -135,7 +190,7 @@ problem_data getData(const char* file){
 }
 
 void printMatrix(int rows, int cols, int** M){
-        cout << "printMatrixFunction----------------------------------------------------------------------------------" << '\n';
+    cout << "printMatrixFunction----------------------------------------------------------------------------------" << '\n';
 	cout<<"rows: "<< rows <<"\n";
 	cout<<"cols: "<< cols <<"\n";
 	for(int x=0;x<rows;x++)  // loop 3 times for three lines
@@ -170,11 +225,12 @@ problem_case getCase(const char* file){
        if(!stream1)
           break;
        //cout << "Found integer: " << n << "\n";
-       cs.CWS[i] = n;
+       cs.AS[i] = n;
     }
     inFile.getline(line, 100);
+    inFile.getline(line, 100);
     std::stringstream stream2(line);
-    //cout << line << endl;
+    cout << line << endl;
     for (int i = 0; i < 2; ++i)
     {
        int n;
@@ -182,9 +238,8 @@ problem_case getCase(const char* file){
        if(!stream2)
           break;
        //cout << "Found integer: " << n << "\n";
-       cs.AS[i] = n;
+       cs.CWS[i] = n;
     }
-    inFile.getline(line, 100);
     inFile.getline(line, 100);
     inFile.getline(line, 100);
     cs.CSWS = new int*[2];
@@ -267,6 +322,298 @@ int** getStartInstance(problem_data d, problem_case c){
     //printMatrix(d.PM_size[0], d.PM_size[1], M);
     return M;
 }
+
+//FE = 
+
+evaluation_data getMatrixSocre(int** M, problem_data d, problem_case c){
+    int temp = -1;
+    evaluation_data e;
+    for (int i = 0; i <  d.PM_size[1]; ++i)
+    {
+        if (i%4==0)
+        {
+            temp++;
+        }
+        int count = 0;
+        for (int j = 0; j < d.PM_size[0]; ++j)
+        {
+         if (M[j][i]==1)
+            {
+                count = count + 1;
+            }   
+        }
+        if (d.CM[temp][i%4]>count)
+        {
+            e.EV = -1000000;
+            return e;
+        }
+        
+    }    
+    e.RBi = new int[d.PM_size[0]];
+    int P_s = 0;
+    int RN_s = 0;
+    int RS_s = 0;
+    for (int i = 0; i < d.PM_size[0]; ++i)
+    {
+        e.RBi[i] = 0;
+    }
+    e.Si = new int[d.PM_size[0]];
+    //Assigments per nurse and Working Shifts per nurse
+    for (int i = 0; i < d.PM_size[0]; ++i)
+    {
+        int nurse_score = 0;
+        int max_cs = -1; //maxconsecutvie shift
+        int as = 0; //assignments
+        int cs = 0; //consecutive shifts
+        for (int j = 0; j < d.PM_size[1]; ++j)
+        {
+            if (M[i][j]==1)
+            {   
+                cs = cs + 1;
+                as = as + 1;
+                nurse_score = nurse_score + d.PM[i][j];
+            }
+            if (M[i][j]==0)
+            {
+                if (cs> max_cs)
+                {
+                    max_cs = cs;
+                }
+                cs = 0;
+            }
+        }
+        if (max_cs < c.CWS[0] || max_cs > c.CWS[1]){
+            e.RBi[i] = e.RBi[i] + 1;
+        }
+        if (as < c.AS[0] || as > c.AS[1])
+        {
+            e.RBi[i] = e.RBi[i] + 1;
+        }
+        e.Si[i]=nurse_score;
+    }
+    for (int i = 0; i < d.PM_size[0]; ++i)
+    {
+        //cout << e.Si[i] << " | ";
+        P_s = P_s + e.Si[i];
+    }
+    //cout << '\n';
+    for (int i = 0; i < d.PM_size[0]; ++i)
+    {
+        //cout << e.RBi[i] << " | ";
+        RN_s = RN_s + e.RBi[i];
+    }
+    //cout << '\n';
+
+    // Assigmenst per shift
+    e.ASi = new int[d.PM_size[1]];
+        for (int i = 0; i < d.PM_size[1]; ++i)
+    {
+        e.ASi[i] = 0;
+    }
+    for (int i = 0; i <  d.PM_size[1]; ++i)
+    {
+        int aps = 0;
+        for (int j = 0; j < d.PM_size[0]; ++j)
+        {
+         if (M[j][i]==1)
+            {
+                aps = aps + 1;
+            }   
+        }
+        if (aps < c.APS[i%4][0] || aps > c.APS[i%4][1])
+        {
+            e.ASi[i] = 1 ;
+        }
+        
+    }
+    for (int i = 0; i < d.PM_size[1]; ++i)
+    {
+        //cout << e.ASi[i] << " | ";
+        RS_s =RS_s + 1;
+    }
+    //cout << '\n';
+    e.EV = P_s - 100*RN_s - 10*RS_s;
+    //cout << "Socre i Neighbor: " << e.EV << '\n';
+    return e;
+
+}
+
+element_data getNeighbors(int** initial_M, problem_data d, problem_case c, cola col){
+    //cout << "getNeighbors\n";
+    int temp = 0;
+    element_data best_neighbor;
+    best_neighbor.M = copyMatrix(initial_M, d);
+
+    if (best_neighbor.M[0][0] == 0)
+    {
+        best_neighbor.M[0][0]=1;
+    }
+    else{
+        best_neighbor.M[0][0]=0;
+    }
+    element_data test_neighbor;
+    best_neighbor.e = getMatrixSocre(best_neighbor.M, d, c);
+
+    int firstElement = 1;
+    for(int i =0; i<d.PM_size[0]; i++){
+        for (int j = 0; j < d.PM_size[1]; ++j)
+        {
+            if (firstElement)
+            {
+                //cout << "firstElement----------------------------------\n";
+               test_neighbor.M = copyMatrix(initial_M, d);
+                if (test_neighbor.M[i][j] == 0)
+                {
+                    test_neighbor.M[i][j]=1;
+                }
+                else{
+                    test_neighbor.M[i][j]=0;
+                }
+                test_neighbor.e = getMatrixSocre(test_neighbor.M, d, c);
+                if (test_neighbor.e.EV==-1000000)
+                {
+                    continue;
+                }
+                else{
+                    int isTabu = 0;
+                    for (int k = 0; k < col.largo; ++k)
+                    {
+                        if (matrixIsEqual(col.v[k].M, test_neighbor.M, d))
+                        {
+                            isTabu = 1;
+                            //cout << "La matris inicial es tabu\n";
+                            break;
+                        }
+                    }
+                    if (!isTabu)
+                    {
+                        best_neighbor.M = copyMatrix(test_neighbor.M, d);
+                        best_neighbor.e = getMatrixSocre(best_neighbor.M, d, c);
+                        firstElement = 0;
+                    }
+                }
+            }
+            else{
+                test_neighbor.M = copyMatrix(initial_M, d);
+                if (test_neighbor.M[i][j] == 0)
+                {
+                    test_neighbor.M[i][j]=1;
+                }
+                else{
+                    test_neighbor.M[i][j]=0;
+                }
+                test_neighbor.e = getMatrixSocre(test_neighbor.M, d, c);
+                if (test_neighbor.e.EV==-1000000)
+                {
+                    continue;
+                }
+                else{
+                    if (test_neighbor.e.EV > best_neighbor.e.EV)
+                    {
+                        int isTabu = 0;
+                        for (int k = 0; k < col.largo; ++k)
+                        {
+                            if (matrixIsEqual(col.v[k].M, test_neighbor.M, d))
+                            {
+                                isTabu = 1;
+                                //cout << "La matris es tabu\n";
+                                break;
+                            }
+                        }
+                        if (!isTabu)
+                        {
+                            best_neighbor.M = copyMatrix(test_neighbor.M, d);
+                            best_neighbor.e = getMatrixSocre(best_neighbor.M, d, c);
+                        }
+                    }
+                }
+            }
+            free(test_neighbor.M);
+            
+        }
+    }
+    //printMatrix(d.PM_size[0], d.PM_size[1], best_neighbor.M);
+    //cout << "Best Neigbor Score: " << best_neighbor.e.EV <<'\n';
+    if (matrixIsEqual(best_neighbor.M, initial_M, d))
+    {
+        cout << "WOPS TE QUEDASTE SIN VECINOS\n";
+        exit(1);
+    }
+    return best_neighbor;
+}
+
+int** copyMatrix(int** initial_M, problem_data d){
+    int** M = new int*[d.PM_size[0]];
+    for(int i=0; i<d.PM_size[0]; i++){
+        M[i] = new int[d.PM_size[1]];
+        for(int j=0; j<d.PM_size[1]; j++)
+        {
+            M[i][j] = initial_M[i][j];
+        }
+    }
+    return M;
+}
+
+int matrixIsEqual(int** M1, int** M2, problem_data d){
+    for (int i = 0; i < d.PM_size[0]; ++i)
+    {
+        for (int j = 0; j < d.PM_size[1]; ++j)
+        {
+            if (M1[i][j] != M2[i][j])
+            {
+                return 0;
+            }
+        }
+    }
+    return 1;
+}
+
+cola insertar(cola c, element_data elemento){
+    //cout << "Tabu list insert\n";
+    //cout << "Elemento score :" << elemento.e.EV << '\n';
+    //cout << "Largo :" << c.largo << '\n';
+
+    if (c.largo == c.max)
+    {
+        //cout << "MAX\n";
+        c.v.erase (c.v.begin());
+        c.v.push_back (elemento);
+    }
+    else{
+        //cout << "NOT MAX\n";
+        c.v.push_back (elemento);
+        c.largo = c.largo + 1;
+        //cout << "Largo despues:" << c.largo << '\n';
+    }
+    for (int i = 0; i < c.largo; ++i)
+    {
+        //cout << c.v[i].e.EV << " | ";
+    }
+    //cout << '\n';
+    return c;
+}
+
+
+/*
+void insertar(cola c, element_data d, int max){
+    if (c.largo==0)
+    {
+        nodo n = new nodo;
+        n.d = d;
+        n.siguiente = NULL;
+        c.inicio = n;
+    }
+    if(c.largo=max-1){
+        eliminar(c);
+    }
+    nodo actual = c.inicio
+    for (int i = 0; i < c.largo; ++i)
+    {
+    }
+}
+void eliminar(cola c);
+*/
+
 
 
 
