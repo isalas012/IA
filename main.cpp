@@ -63,7 +63,8 @@ int matrixIsEqual(int** M1, int** M2, problem_data d);
 int main(int argc, char const *argv[])
 {
 
-    tabuSearch("./NSPLib/N100/1.nsp", "./NSPLib/Cases/1.gen", 100, 100);
+    //tabuSearch("./NSPLib/N100/1.nsp", "./NSPLib/Cases/1.gen", 100, 100);
+    tabuSearch("./NSPLib/test.nsp", "./NSPLib/test.gen", 50001, 50001);
 	return 0;
 }
 
@@ -82,9 +83,10 @@ void tabuSearch(const char* file_data, const char* file_case, int tabuListSize, 
     best_element.M = getStartInstance(data, cs);
     best_element.e = getMatrixSocre(best_element.M, data, cs);
     tabuList = insertar(tabuList, best_element);
-    //printMatrix(data.PM_size[0],data.PM_size[1], data.PM);
-    //printMatrix(4,2, cs.CSWS);
-    //printMatrix(4,2, cs.APS);
+    printMatrix(data.CM_size[0],data.CM_size[1], data.CM);
+    printMatrix(data.PM_size[0],data.PM_size[1], data.PM);
+    printMatrix(4,2, cs.CSWS);
+    printMatrix(4,2, cs.APS);
     actual_element = best_element;
     for (int i = 0; i < iteraciones; ++i)
     {
@@ -99,11 +101,11 @@ void tabuSearch(const char* file_data, const char* file_case, int tabuListSize, 
     cout << "Best of all elements##################################\n";
     cout << "Best of all elements score:" << best_element.e.EV <<"\n";
     printMatrix(data.PM_size[0],data.PM_size[1], best_element.M);
-    /*
+    
     for (int i = 0; i < tabuList.largo; ++i)
     {
         printMatrix(data.PM_size[0],data.PM_size[1], tabuList.v[i].M);
-    }*/
+    }
 }
 
 
@@ -130,17 +132,17 @@ problem_data getData(const char* file){
 	   stream >> n;
 	   if(!stream)
 	      break;
-	   //cout << "Found integer: " << n << "\n";
+	   cout << "Found integer: " << n << "\n";
 	   PS[i] = n;
     }
     inFile.getline(line, 100);
-    //cout << line << endl;
+    cout << line << endl;
     int** CM; //Coverage Matrix: CM[row][column]
     CM = new int*[PS[1]];
     for (int i = 0; i < PS[1]; ++i)
     {
 	    inFile.getline(line, 100);
-	    //cout << line << endl;
+	    cout << line << endl;
 	    std::stringstream stream2(line);
 	    CM[i] = new int[PS[2]];
 	    int j=0;
@@ -150,20 +152,20 @@ problem_data getData(const char* file){
 		   stream2 >> n;
 		   if(!stream2)
 		      break;
-		   //cout << "Found integer: " << n << "\n";
+		   cout << "Found integer: " << n << "\n";
 		   CM[i][j] = n;
 		   j++;
 	    }
     }
     inFile.getline(line, 100);
-    //cout << line << endl;
+    cout << line << endl;
     int AS = PS[1]*PS[2]; //all shifts
     int** PM; //[PS[0]][AS]
     PM = new int*[PS[0]];
     for (int i = 0; i < PS[0]; ++i)
     {
 	    inFile.getline(line, 100);
-	    //cout << line << endl;
+	    cout << line << endl;
 	    std::stringstream stream2(line);
 	    PM[i] = new int[AS];
 	    int j=0;
@@ -173,7 +175,7 @@ problem_data getData(const char* file){
 		   stream2 >> n;
 		   if(!stream2)
 		      break;
-		   //cout << "Found integer: " << n << "\n";
+		   cout << "Found integer: " << n << "\n";
 		   PM[i][j] = n;
 		   j++;
 	    }
@@ -217,14 +219,14 @@ problem_case getCase(const char* file){
     inFile.getline(line, 100);
     inFile.getline(line, 100);
     std::stringstream stream1(line);
-    //cout << line << endl;
+    cout << line << endl;
     for (int i = 0; i < 2; ++i)
     {
        int n;
        stream1 >> n;
        if(!stream1)
           break;
-       //cout << "Found integer: " << n << "\n";
+       cout << "Found integer: " << n << "\n";
        cs.AS[i] = n;
     }
     inFile.getline(line, 100);
@@ -237,7 +239,7 @@ problem_case getCase(const char* file){
        stream2 >> n;
        if(!stream2)
           break;
-       //cout << "Found integer: " << n << "\n";
+       cout << "Found integer: " << n << "\n";
        cs.CWS[i] = n;
     }
     inFile.getline(line, 100);
@@ -247,7 +249,7 @@ problem_case getCase(const char* file){
     for (int i = 0; i < 4; ++i)
     {
         inFile.getline(line, 100);
-        //cout << line << endl;
+        cout << line << endl;
         std::stringstream stream2(line);
         cs.CSWS[i] = new int[2];
         cs.APS[i] = new int[2];
@@ -258,7 +260,7 @@ problem_case getCase(const char* file){
            stream2 >> n;
            if(!stream2)
               break;
-           //cout << "Found integer: " << n << "\n";
+           cout << "Found integer: " << n << "\n";
            if (j<2)
            {
                 cs.CSWS[i][j] = n;
@@ -282,7 +284,7 @@ int** getStartInstance(problem_data d, problem_case c){
             M[i][j] = 0;
         }
     }
-    //printMatrix(d.PM_size[0], d.PM_size[1], M);
+    printMatrix(d.PM_size[0], d.PM_size[1], M);
     srand (time(NULL));
     int temp = -1;
     for (int i = 0; i < d.PM_size[1]; ++i)
@@ -589,6 +591,7 @@ cola insertar(cola c, element_data elemento){
     {
         //cout << c.v[i].e.EV << " | ";
     }
+    //cout << '\n';
     //cout << '\n';
     return c;
 }
