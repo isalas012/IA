@@ -63,8 +63,8 @@ int matrixIsEqual(int** M1, int** M2, problem_data d);
 int main(int argc, char const *argv[])
 {
 
-    //tabuSearch("./NSPLib/N25/1.nsp", "./NSPLib/Cases/1.gen", 100, 100);
-    tabuSearch("./NSPLib/test.nsp", "./NSPLib/test.gen", 10, 1000);
+    tabuSearch("./NSPLib/N25/1.nsp", "./NSPLib/Cases/1.gen", 100, 500);
+    //tabuSearch("./NSPLib/test.nsp", "./NSPLib/test.gen", 10, 1000);
 	return 0;
 }
 
@@ -371,6 +371,13 @@ evaluation_data getMatrixSocre(int** M, problem_data d, problem_case c){
         int max_cs = -1; //maxconsecutvie shift
         int as = 0; //assignments
         int cs = 0; //consecutive shifts
+        int maxShiftValues[d.PS[2]];
+        int actualShiftValues[d.PS[2]];
+        for (int j = 0; j < d.PS[2]; ++j)
+        {
+            maxShiftValues[j] = 0;
+            actualShiftValues[j]=0;
+        }
         for (int j = 0; j < d.PM_size[1]; ++j)
         {
             if (M[i][j]==1)
@@ -378,6 +385,13 @@ evaluation_data getMatrixSocre(int** M, problem_data d, problem_case c){
                 cs = cs + 1;
                 as = as + 1;
                 nurse_score = nurse_score + d.PM[i][j];
+                for (int k = 0; k < d.PS[2]; ++k)
+                {
+                    if (j%d.PS[2]==k)
+                    {
+                        actualShiftValues[k] = actualShiftValues[k] + 1;
+                    }
+                }
             }
             if (M[i][j]==0)
             {
@@ -386,6 +400,20 @@ evaluation_data getMatrixSocre(int** M, problem_data d, problem_case c){
                     max_cs = cs;
                 }
                 cs = 0;
+                for (int k = 0; k < d.PS[2]; ++k)
+                {
+                    if (j%d.PS[2]==k)
+                    {
+                        if (maxShiftValues[k]<actualShiftValues[k])
+                        {
+                            maxShiftValues[k] = actualShiftValues[k];
+                        }
+                    }
+                }
+                for (int k = 0; k < d.PS[2]; ++k)
+                {
+                    actualShiftValues[k] = 0;
+                }
             }
         }
         if (max_cs < c.CWS[0] || max_cs > c.CWS[1]){
@@ -394,6 +422,13 @@ evaluation_data getMatrixSocre(int** M, problem_data d, problem_case c){
         if (as < c.AS[0] || as > c.AS[1])
         {
             e.RBi[i] = e.RBi[i] + 1;
+        }
+        for (int k = 0; k < d.PS[2]; ++k)
+        {
+            if (maxShiftValues[k] < c.CSWS[k][0] || maxShiftValues[k] > c.CSWS[k][1])
+            {
+                e.RBi[i] = e.RBi[i] + 1;
+            }
         }
         e.Si[i]=nurse_score;
     }
@@ -412,7 +447,7 @@ evaluation_data getMatrixSocre(int** M, problem_data d, problem_case c){
 
     // Assigmenst per shift
     e.ASi = new int[d.PM_size[1]];
-        for (int i = 0; i < d.PM_size[1]; ++i)
+    for (int i = 0; i < d.PM_size[1]; ++i)
     {
         e.ASi[i] = 0;
     }
@@ -438,7 +473,7 @@ evaluation_data getMatrixSocre(int** M, problem_data d, problem_case c){
         RS_s =RS_s + 1;
     }
     //cout << '\n';
-    e.EV = P_s - 100*RN_s - 10*RS_s;
+    e.EV = P_s - RN_s - RS_s;
     //cout << "Socre i Neighbor: " << e.EV << '\n';
     return e;
 
