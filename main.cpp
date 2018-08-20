@@ -5,6 +5,7 @@
 #include <iomanip>
 #include <fstream>
 #include <vector>
+#include <string>
 using namespace std;
 
 /*-------------------------------Data Structures-------------------------------*/
@@ -53,10 +54,10 @@ std::vector<vector<int>> getStartInstance(problem_data d, problem_case c);
 evaluation_data getMatrixScore(std::vector<vector<int>> M, problem_data d, problem_case c);
 element_data getNeighbors(std::vector<vector<int>> initial_M, problem_data d, problem_case c, cola col);
 void insertar(cola &c, element_data elemento);
-void tabuSearch(const char* file_data, const char* file_case, int tabuListSize, int iteraciones);
+void tabuSearch(problem_data data, problem_case cs, int tabuListSize, int iteraciones, std::vector<vector<int>> M);
 int matrixIsEqual(std::vector<vector<int>> M1, std::vector<vector<int>> M2, problem_data d);
 int validMatrix(std::vector<vector<int>> M, problem_data d);
-//std::vector<vector<int>> getStartInstanceOld(problem_data d, problem_case c);
+std::vector<vector<int>> getStartInstanceOld(problem_data d, problem_case c);
 
 
 /*------------------------------------Main------------------------------------*/
@@ -64,26 +65,30 @@ int validMatrix(std::vector<vector<int>> M, problem_data d);
 int main(int argc, char const *argv[])
 {
 
-    tabuSearch("./NSPLib/N50/1.nsp", "./NSPLib/Cases/1.gen", 50, 50);
-    //tabuSearch("./NSPLib/test1/test1.nsp", "./NSPLib/test1/test1.gen", 10, 10);
+    int iteraciones = 50;
+    int largoListaTabu = 100;
+    cout << "Cargando datos desde los archivos...\n";
+    const char* data_file = argv[1];
+    const char* case_file = argv[2];
+    cout << argv[1]<< '\n';
+    cout << argv[2]<< '\n';
+    problem_case cs = getCase(case_file);
+    problem_data data = getData(data_file);
+    std::vector<vector<int>> M = getStartInstance(data, cs);
+    tabuSearch(data, cs , largoListaTabu, iteraciones, M);
 	return 0;
 }
 
 /*---------------------------------Functions---------------------------------*/
 
-void tabuSearch(const char* file_data, const char* file_case, int tabuListSize, int iteraciones){
+void tabuSearch(problem_data data, problem_case cs, int tabuListSize, int iteraciones, std::vector<vector<int>> M ){
     cola tabuList;
     tabuList.max = tabuListSize;
-    problem_data data;
-    problem_case cs;
     element_data best_element;
     element_data actual_element;
-    element_data best_neighbor;
-    cout << "Cargando datos desde los archivos...\n";
-    data = getData(file_data);
-    cs = getCase(file_case);
+    element_data best_neighbor;    
     cout << "Ejecutando tabuSearch" << flush;
-    best_element.M = getStartInstance(data, cs);
+    best_element.M = M;
     best_element.e = getMatrixScore(best_element.M, data, cs);
     insertar(tabuList, best_element);
     //printMatrix(data.CM_size[0],data.CM_size[1], data.CM);
@@ -95,7 +100,7 @@ void tabuSearch(const char* file_data, const char* file_case, int tabuListSize, 
     {
         best_neighbor = getNeighbors(actual_element.M, data, cs, tabuList);
         insertar(tabuList, best_neighbor);
-        if (best_element.e.EV < best_neighbor.e.EV)
+        if (best_element.e.EV > best_neighbor.e.EV)
         {
             best_element = best_neighbor;
         }
@@ -103,37 +108,38 @@ void tabuSearch(const char* file_data, const char* file_case, int tabuListSize, 
         cout << "." << flush;
     }
     cout << '\n';
-    cout << "La mejor configuracion obtenida con un puntaje de " << best_element.e.EV << " es:" << '\n';
+    cout << "La mejor configuracion obtenida tiene un costo de: " << best_element.e.EV << '\n';
     //printMatrix(data.PM_size[0],data.PM_size[1], best_element.M);
-    cout << '\n';
-    cout << "Puntaje cada enfermera: " << '\n';
-    int total = 0;
+    int counter = 0;
     for (int i = 0; i < data.PS[0]; ++i)
     {
-        cout << best_element.e.Si[i] << " | ";
-        total = total + best_element.e.Si[i];
+        counter = counter + best_element.e.RBi[i];
     }
-    cout << '\n';
-    cout << "Con un total de: " << total << '\n';
-    cout << '\n';
-    cout << "Restricciones rotas por cada enfermera: " << '\n';
+    ofstream myfile;
+    std::string s = std::to_string(data.PM_size[0]);
+    myfile.open ("N"+s+".output");
+    for(int x=0;x<data.PM_size[0];x++)  // loop 3 times for three lines
+    {
+
+        for(int y=0;y<data.PM_size[1];y++)  // loop for the three elements on the line
+        {
+            myfile << best_element.M[x][y]<<" ";  // display the current element out of the array
+        }
+        myfile << '\n';  // when the inner loop is done, go to a new line
+    }
+    myfile << counter << " ";
     for (int i = 0; i < data.PS[0]; ++i)
     {
-        cout << best_element.e.RBi[i] << " | ";
+        myfile << best_element.e.RBi[i]<<" ";
     }
-    cout << '\n';
-    cout << '\n';
-    cout << "Restricciones rotas por maximo de enfermeras por turno: " << '\n';
-    for (int i = 0; i < data.PM_size[1]; ++i)
+    myfile << '\n';
+    myfile << best_element.e.EV << " ";
+    for (int i = 0; i < data.PS[0]; ++i)
     {
-        cout << best_element.e.ASi[i] << " | ";
+        myfile << best_element.e.Si[i]<<" ";
     }
-    cout << '\n';
-    /*
-    for (int i = 0; i < tabuList.largo; ++i)
-    {
-        printMatrix(data.PM_size[0],data.PM_size[1], tabuList.v[i].M);
-    }*/
+    myfile << '\n';
+    myfile.close();
 }
 
 
@@ -147,7 +153,6 @@ problem_data getData(const char* file){
         cout << "Unable to open file";
         exit(1); // terminate with error
     }
-    
     char line[100];
     inFile.getline(line, 100);
     std::stringstream stream(line);
@@ -311,7 +316,7 @@ problem_case getCase(const char* file){
     return cs;
 }
 
-/*
+
 std::vector<vector<int>> getStartInstanceOld(problem_data d, problem_case c){
     
     std::vector<vector<int>> M(d.PM_size[0]);
@@ -361,7 +366,7 @@ std::vector<vector<int>> getStartInstanceOld(problem_data d, problem_case c){
     }
     //printMatrix(d.PM_size[0], d.PM_size[1], M);
     return M;
-}*/
+}
 
 std::vector<vector<int>> getStartInstance(problem_data d, problem_case c){
     std::vector<vector<int>> M;
@@ -447,7 +452,7 @@ evaluation_data getMatrixScore(std::vector<vector<int>> M, problem_data d, probl
         }
         if (d.CM[temp][i%d.PS[2]]>count)
         {
-            e.EV = -1000000;
+            e.EV = 1000000;
             return e;
         }
         
@@ -568,7 +573,8 @@ evaluation_data getMatrixScore(std::vector<vector<int>> M, problem_data d, probl
     {
         RS_s =RS_s + e.ASi[i];
     }
-    e.EV = P_s - RN_s - RS_s;
+    //e.EV = P_s - 10*RN_s - 10*RS_s;
+    e.EV = P_s + RN_s + RS_s;
     //cout << "Socre i Neighbor: " << e.EV << '\n';
     return e;
 
@@ -576,7 +582,6 @@ evaluation_data getMatrixScore(std::vector<vector<int>> M, problem_data d, probl
 
 element_data getNeighbors(std::vector<vector<int>> initial_M, problem_data d, problem_case c, cola col){
     //cout << "getNeighbors\n";
-    int temp = 0;
     element_data best_neighbor;
     element_data test_neighbor;
     int firstElement = 1;
@@ -595,7 +600,7 @@ element_data getNeighbors(std::vector<vector<int>> initial_M, problem_data d, pr
                     test_neighbor.M[i][j]=0;
                 }
                 test_neighbor.e = getMatrixScore(test_neighbor.M, d, c);
-                if (test_neighbor.e.EV==-1000000)
+                if (test_neighbor.e.EV==1000000)
                 {
                     continue;
                 }
@@ -612,14 +617,14 @@ element_data getNeighbors(std::vector<vector<int>> initial_M, problem_data d, pr
                     }
                     if (!isTabu)
                     {
-                        best_neighbor.M = test_neighbor.M, d;
+                        best_neighbor.M = test_neighbor.M;
                         best_neighbor.e = getMatrixScore(best_neighbor.M, d, c);
                         firstElement = 0;
                     }
                 }
             }
             else{
-                test_neighbor.M = initial_M, d;
+                test_neighbor.M = initial_M;
                 if (test_neighbor.M[i][j] == 0)
                 {
                     test_neighbor.M[i][j]=1;
@@ -628,12 +633,12 @@ element_data getNeighbors(std::vector<vector<int>> initial_M, problem_data d, pr
                     test_neighbor.M[i][j]=0;
                 }
                 test_neighbor.e = getMatrixScore(test_neighbor.M, d, c);
-                if (test_neighbor.e.EV==-1000000)
+                if (test_neighbor.e.EV==1000000)
                 {
                     continue;
                 }
                 else{
-                    if (test_neighbor.e.EV > best_neighbor.e.EV)
+                    if (test_neighbor.e.EV < best_neighbor.e.EV)
                     {
                         int isTabu = 0;
                         for (int k = 0; k < col.largo; ++k)
@@ -647,7 +652,7 @@ element_data getNeighbors(std::vector<vector<int>> initial_M, problem_data d, pr
                         }
                         if (!isTabu)
                         {
-                            best_neighbor.M = test_neighbor.M, d;
+                            best_neighbor.M = test_neighbor.M;
                             best_neighbor.e = getMatrixScore(best_neighbor.M, d, c);
                         }
                     }
@@ -658,11 +663,6 @@ element_data getNeighbors(std::vector<vector<int>> initial_M, problem_data d, pr
     }
     //printMatrix(d.PM_size[0], d.PM_size[1], best_neighbor.M);
     //cout << "Best Neigbor Score: " << best_neighbor.e.EV <<'\n';
-    if (matrixIsEqual(best_neighbor.M, initial_M, d))
-    {
-        cout << "WOPS TE QUEDASTE SIN VECINOS\n";
-        exit(1);
-    }
     return best_neighbor;
 }
 
