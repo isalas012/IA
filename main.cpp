@@ -150,7 +150,7 @@ problem_data getData(const char* file){
 	std::vector<int> PS(3); // Problem size: [N, D, S]
     inFile.open(file);
     if (!inFile) {
-        cout << "Unable to open file";
+        cout << "No es posible abrir el archivo";
         exit(1); // terminate with error
     }
     char line[100];
@@ -241,7 +241,7 @@ problem_case getCase(const char* file){
 
     inFile.open(file);
     if (!inFile) {
-        cout << "Unable to open file";
+        cout << "No es posible abrir el archivo";
         exit(1); // terminate with error
     }
     char line[100];
